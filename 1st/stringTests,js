@@ -1,0 +1,788 @@
+
+function display(v) {
+  if (typeof v === "string") return `"${v}"`;
+  if (v === undefined) return "undefined";
+  if (v === null) return "null";
+  if (typeof v === "number" && Number.isNaN(v)) return "NaN";
+  if (Array.isArray(v)) return JSON.stringify(v);
+  if (typeof v === "object") return JSON.stringify(v);
+  return String(v);
+}
+
+function runTests(title, fn, cases) {
+  console.log("\n" + "=".repeat(70));
+  console.log(title);
+  console.log("=".repeat(70));
+  cases.forEach((c, i) => {
+    let result;
+    try {
+      result = fn(c);
+    } catch (e) {
+      result = `ПОМИЛКА: ${e.message}`;
+    }
+    const inputDisplay = display(c);
+    console.log(
+      `#${String(i + 1).padStart(2, "0")}  input: ${inputDisplay.padEnd(28)} -> ${display(result)}`
+    );
+  });
+}
+
+runTests(
+  "String.prototype.at(index)",
+  ([str, idx]) => str.at(idx),
+  [
+    ["hello", 0],
+    ["hello", 4],
+    ["hello", -1],
+    ["hello", -5],
+    ["hello", 10],
+    ["hello", -10],
+    ["", 0],
+    ["a", 0],
+    ["привіт", 0],
+    ["привіт", -1],
+    ["12345", 2],
+    ["  space  ", 0],
+    ["hello", 1.9],
+    ["hello", NaN],
+    ["hello", undefined],
+    ["hello", null],
+    ["hello", "2"],
+    ["hello", "abc"],
+    ["😀😃", 0],
+    ["😀😃", 1],
+  ]
+);
+
+runTests(
+  "String.prototype.charAt(index)",
+  ([str, idx]) => str.charAt(idx),
+  [
+    ["hello", 0],
+    ["hello", 4],
+    ["hello", -1],
+    ["hello", 10],
+    ["", 0],
+    ["a", 0],
+    ["привіт", 0],
+    ["12345", 2],
+    ["  space  ", 0],
+    ["hello", 1.9],
+    ["hello", NaN],
+    ["hello", undefined],
+    ["hello", null],
+    ["hello", "2"],
+    ["hello", "abc"],
+    ["😀😃", 0],
+    ["😀😃", 1],
+    ["hello"],
+    ["hello", Infinity],
+    ["hello", -Infinity],
+  ]
+);
+
+runTests(
+  "String.fromCharCode(...codes)",
+  (codes) => String.fromCharCode(...codes),
+  [
+    [72, 101, 108, 108, 111],
+    [65],
+    [97],
+    [48],
+    [1055, 1088, 1080, 1074, 1110, 1090],
+    [0],
+    [65535],
+    [65, 66, 67],
+    [8364],
+    [9731],
+    [128512],
+    [NaN],
+    [null],
+    [undefined],
+    ["65"],
+    [65.9],
+    [-1],
+    [70000],
+    [32],
+    [10],
+  ]
+);
+
+runTests(
+  "String.prototype.charCodeAt(index)",
+  ([str, idx]) => str.charCodeAt(idx),
+  [
+    ["A", 0],
+    ["hello", 0],
+    ["hello", 4],
+    ["hello", 10],
+    ["", 0],
+    ["привіт", 0],
+    ["😀", 0],
+    ["😀", 1],
+    ["hello", -1],
+    ["hello", NaN],
+    ["hello", undefined],
+    ["hello", null],
+    ["hello", "2"],
+    ["hello", "abc"],
+    ["hello", 1.9],
+    ["0", 0],
+    [" ", 0],
+    ["\n", 0],
+    ["abc"],
+    ["Z", 0],
+  ]
+);
+
+runTests(
+  "String.prototype.concat(...strings)",
+  ([str, args]) => str.concat(...args),
+  [
+    ["Hello", [" ", "World"]],
+    ["foo", ["bar"]],
+    ["", ["abc"]],
+    ["abc", []],
+    ["a", ["b", "c", "d"]],
+    ["num:", [123]],
+    ["bool:", [true]],
+    ["null:", [null]],
+    ["undef:", [undefined]],
+    ["arr:", [[1, 2, 3]]],
+    ["obj:", [{}]],
+    ["привіт ", ["світ"]],
+    ["😀", ["😃"]],
+    ["a", [1, 2, 3]],
+    ["x", [NaN]],
+    ["y", [Infinity]],
+    ["z", [null, undefined]],
+    ["-", ["-", "-"]],
+    ["", []],
+    ["end", [""]],
+  ]
+);
+
+runTests(
+  "String.prototype.endsWith(searchString, endPosition)",
+  ([str, search, end]) => (end === undefined ? str.endsWith(search) : str.endsWith(search, end)),
+  [
+    ["Hello World", "World", undefined],
+    ["Hello World", "Hello", undefined],
+    ["Hello World", "world", undefined],
+    ["Hello World", "", undefined],
+    ["Hello World", "Hello World", undefined],
+    ["Hello World", "Hello", 5],
+    ["Hello World", "lo", 5],
+    ["", "", undefined],
+    ["abc", "abcd", undefined],
+    ["12345", "45", undefined],
+    ["file.txt", ".txt", undefined],
+    ["file.txt", ".TXT", undefined],
+    ["привіт", "віт", undefined],
+    ["  space  ", " ", undefined],
+    ["aaa", "aa", undefined],
+    ["Hello World", "World", 100],
+    ["Hello World", "World", 0],
+    ["Hello World", "World", -1],
+    ["Hello World", "World", NaN],
+    ["Hello World", null, undefined],
+  ]
+);
+
+runTests(
+  "String.prototype.includes(searchString, position)",
+  ([str, search, pos]) => (pos === undefined ? str.includes(search) : str.includes(search, pos)),
+  [
+    ["Hello World", "World", undefined],
+    ["Hello World", "world", undefined],
+    ["Hello World", "", undefined],
+    ["Hello World", "Hello World", undefined],
+    ["Hello World", "xyz", undefined],
+    ["Hello World", "o W", undefined],
+    ["Hello World", "World", 6],
+    ["Hello World", "World", 7],
+    ["", "", undefined],
+    ["abcabc", "bc", 2],
+    ["привіт світ", "світ", undefined],
+    ["  space  ", " ", undefined],
+    ["12345", "234", undefined],
+    ["Hello World", "World", -5],
+    ["Hello World", "World", NaN],
+    ["Hello World", null, undefined],
+    ["Hello World", undefined, undefined],
+    ["null", null, undefined],
+    ["123", 2, undefined],
+    ["aaaa", "aaaaa", undefined],
+  ]
+);
+
+runTests(
+  "String.prototype.indexOf(searchValue, fromIndex)",
+  ([str, search, from]) => (from === undefined ? str.indexOf(search) : str.indexOf(search, from)),
+  [
+    ["Hello World", "World", undefined],
+    ["Hello World", "o", undefined],
+    ["Hello World", "o", 5],
+    ["Hello World", "xyz", undefined],
+    ["Hello World", "", undefined],
+    ["", "", undefined],
+    ["aaaa", "aa", undefined],
+    ["aaaa", "aa", 1],
+    ["Hello World", "World", 100],
+    ["Hello World", "World", -5],
+    ["Hello World", "World", NaN],
+    ["привіт світ", "світ", undefined],
+    ["12345", "3", undefined],
+    ["Hello World", null, undefined],
+    ["Hello World", undefined, undefined],
+    ["123", 2, undefined],
+    ["Hello World", "o", 6],
+    ["Hello World", "Hello World", undefined],
+    ["case Case CASE", "Case", undefined],
+    ["  leading", " ", undefined],
+  ]
+);
+
+runTests(
+  "String.prototype.lastIndexOf(searchValue, fromIndex)",
+  ([str, search, from]) => (from === undefined ? str.lastIndexOf(search) : str.lastIndexOf(search, from)),
+  [
+    ["Hello World", "o", undefined],
+    ["Hello World", "o", 5],
+    ["Hello World", "xyz", undefined],
+    ["aaaa", "aa", undefined],
+    ["aaaa", "aa", 1],
+    ["", "", undefined],
+    ["Hello World", "", undefined],
+    ["Hello World", "World", undefined],
+    ["Hello World", "World", 100],
+    ["Hello World", "World", -5],
+    ["Hello World", "World", NaN],
+    ["привіт світ привіт", "привіт", undefined],
+    ["12321", "2", undefined],
+    ["Hello World", null, undefined],
+    ["Hello World", undefined, undefined],
+    ["123", 2, undefined],
+    ["case Case CASE", "case", undefined],
+    ["abcabcabc", "abc", undefined],
+    ["abcabcabc", "abc", 5],
+    ["  trailing  ", " ", undefined],
+  ]
+);
+
+runTests(
+  "String.prototype.match(regexp)",
+  ([str, re]) => str.match(re),
+  [
+    ["2024-01-15", /\d+/],
+    ["2024-01-15", /\d+/g],
+    ["Hello World", /o/g],
+    ["Hello World", /xyz/],
+    ["abc123def456", /\d+/g],
+    ["The rain", /rain/],
+    ["The rain", "rain"],
+    ["CamelCase", /[A-Z]/g],
+    ["", /a/],
+    ["a1b2c3", /[a-z](\d)/],
+    ["a1b2c3", /[a-z](\d)/g],
+    ["email@test.com", /\S+@\S+\.\S+/],
+    ["multi\nline", /^line/m],
+    ["ABC abc", /abc/i],
+    ["ABC abc", /abc/gi],
+    ["no match here", /\d/],
+    ["привіт світ", /\p{L}+/gu],
+    ["100$ 200$", /(\d+)\$/g],
+    ["aaa", /a*/],
+    ["test", null],
+  ]
+);
+
+runTests(
+  "String.prototype.matchAll(regexp)",
+  ([str, re]) => Array.from(str.matchAll(re)).map((m) => m[0]),
+  [
+    ["2024-01-15", /\d+/g],
+    ["abc123def456", /\d+/g],
+    ["Hello World", /o/g],
+    ["a1b2c3", /[a-z](\d)/g],
+    ["no digits", /\d+/g],
+    ["", /a/g],
+    ["aaa", /a/g],
+    ["one two three", /\w+/g],
+    ["ABC abc", /abc/gi],
+    ["100$ 200$ 300$", /(\d+)\$/g],
+    ["привіт світ", /\p{L}+/gu],
+    ["x=1;y=2;z=3", /(\w)=(\d)/g],
+    ["repeat repeat", /repeat/g],
+    ["CamelCaseWord", /[A-Z][a-z]*/g],
+    ["a.b.c.d", /\./g],
+    ["multi\nline\ntext", /^\w+/gm],
+    ["   ", /\S+/g],
+    ["1,2,3,4", /\d/g],
+    ["test", /t/g],
+    ["email@a.com b@c.com", /\S+@\S+\.\S+/g],
+  ]
+);
+
+runTests(
+  "String.prototype.normalize(form)",
+  ([str, form]) => (form === undefined ? str.normalize() : str.normalize(form)),
+  [
+    ["café", undefined],
+    ["café", "NFC"],
+    ["café", "NFD"],
+    ["\u00E9", "NFD"],
+    ["e\u0301", "NFC"],
+    ["ﬁle", "NFKC"],
+    ["ﬁle", "NFKD"],
+    ["", undefined],
+    ["hello", undefined],
+    ["привіт", "NFC"],
+    ["Å", "NFD"],
+    ["ﬀ", "NFKC"],
+    ["1²3", "NFKC"],
+    ["hello", "NFC"],
+    ["hello", "NFD"],
+    ["hello", "NFKC"],
+    ["hello", "NFKD"],
+    ["ñ", "NFC"],
+    ["ñ", "NFD"],
+    ["ß", "NFKC"],
+  ]
+);
+
+runTests(
+  "String.prototype.padEnd(targetLength, padString)",
+  ([str, len, pad]) => (pad === undefined ? str.padEnd(len) : str.padEnd(len, pad)),
+  [
+    ["5", 3, "0"],
+    ["abc", 7, "xyz"],
+    ["abc", 3, "x"],
+    ["abc", 1, "x"],
+    ["", 5, "-"],
+    ["abc", 6, undefined],
+    ["abc", 5],
+    ["1", 4, "0"],
+    ["hello", 10, "!"],
+    ["hello", 10],
+    ["abc", -1, "x"],
+    ["abc", NaN, "x"],
+    ["привіт", 10, "*"],
+    ["abc", 5, ""],
+    ["abc", 8, "12"],
+    ["abc", 3.9, "x"],
+    ["😀", 5, "*"],
+    ["x", 5, "ab"],
+    ["", 0, "-"],
+    ["abc", 10, "0123456789"],
+  ]
+);
+
+runTests(
+  "String.prototype.padStart(targetLength, padString)",
+  ([str, len, pad]) => (pad === undefined ? str.padStart(len) : str.padStart(len, pad)),
+  [
+    ["5", 3, "0"],
+    ["abc", 7, "xyz"],
+    ["abc", 3, "x"],
+    ["abc", 1, "x"],
+    ["", 5, "-"],
+    ["abc", 6, undefined],
+    ["abc", 5],
+    ["1", 4, "0"],
+    ["hello", 10, "!"],
+    ["hello", 10],
+    ["abc", -1, "x"],
+    ["abc", NaN, "x"],
+    ["привіт", 10, "*"],
+    ["abc", 5, ""],
+    ["abc", 8, "12"],
+    ["abc", 3.9, "x"],
+    ["😀", 5, "*"],
+    ["x", 5, "ab"],
+    ["", 0, "-"],
+    ["7", 2, "0"],
+  ]
+);
+
+runTests(
+  "String.prototype.repeat(count)",
+  ([str, count]) => str.repeat(count),
+  [
+    ["abc", 3],
+    ["abc", 0],
+    ["a", 5],
+    ["", 5],
+    ["ab", 1],
+    ["x", 2.9],
+    ["привіт ", 2],
+    ["-", 10],
+    ["abc", -1],
+    ["abc", Infinity],
+    ["abc", NaN],
+    ["abc", "3"],
+    ["abc", "abc"],
+    ["abc", null],
+    ["abc", undefined],
+    ["abc", true],
+    ["😀", 3],
+    ["a", 1000],
+    [" ", 3],
+    ["ab", -0],
+  ]
+);
+
+runTests(
+  "String.prototype.replace(pattern, replacement)",
+  ([str, pattern, repl]) => str.replace(pattern, repl),
+  [
+    ["Hello World", "World", "There"],
+    ["aaa", "a", "b"],
+    ["aaa", /a/g, "b"],
+    ["2024-01-15", /-/g, "/"],
+    ["Hello World", /o/gi, "0"],
+    ["price: 100", /\d+/, "200"],
+    ["John Smith", /(\w+) (\w+)/, "$2 $1"],
+    ["Hello", "xyz", "abc"],
+    ["cat bat hat", /at/g, "og"],
+    ["Hello World", "World", () => "Universe"],
+    ["a1b2c3", /\d/g, (m) => `[${m}]`],
+    ["", "a", "b"],
+    ["привіт світ", "світ", "world"],
+    ["multiple   spaces", /\s+/g, " "],
+    ["Hello World", /world/i, "PLANET"],
+    ["abc", /b/, "$&$&"],
+    ["test", /(?<first>t)est/, "$<first>ea"],
+    ["no match", "xyz", "abc"],
+    ["100$", "$", "USD"],
+    ["camelCase", /[A-Z]/g, (m) => "_" + m.toLowerCase()],
+  ]
+);
+
+runTests(
+  "String.prototype.replaceAll(pattern, replacement)",
+  ([str, pattern, repl]) => str.replaceAll(pattern, repl),
+  [
+    ["aaa", "a", "b"],
+    ["Hello World Hello", "Hello", "Hi"],
+    ["a-b-c-d", "-", "_"],
+    ["aaa", /a/g, "b"],
+    ["one two one two", "one", "1"],
+    ["", "a", "b"],
+    ["Hello", "xyz", "abc"],
+    ["cat bat hat", /at/g, "og"],
+    ["A a A a", "a", "X"],
+    ["A a A a", /a/gi, "X"],
+    ["multiple   spaces   here", / +/g, " "],
+    ["1,2,3,4,5", ",", ";"],
+    ["привіт привіт", "привіт", "hi"],
+    ["aaa", "a", () => "z"],
+    ["a1b2c3", /\d/g, (m) => `<${m}>`],
+    ["xx", "x", "xx"],
+    ["boom", "o", "0"],
+    ["path/to/file", "/", "\\"],
+    ["100$ 200$", "$", "USD"],
+    ["true, false, true", "true", "1"],
+  ]
+);
+
+runTests(
+  "String.prototype.search(regexp)",
+  ([str, re]) => str.search(re),
+  [
+    ["Hello World", /World/],
+    ["Hello World", /world/],
+    ["Hello World", /world/i],
+    ["abc123", /\d/],
+    ["abc", /\d/],
+    ["", /a/],
+    ["Hello World", "World"],
+    ["Hello World", "o"],
+    ["привіт світ", /світ/],
+    ["multi\nline", /^line/m],
+    ["12345", /\d+/],
+    ["Hello", /^H/],
+    ["Hello", /o$/],
+    ["test string", /\s/],
+    ["nowhitespace", /\s/],
+    ["Hello World", /.*/],
+    ["Hello World", /xyz/],
+    ["Hello World", null],
+    ["100", /\D/],
+    ["CamelCase", /[A-Z]/],
+  ]
+);
+
+runTests(
+  "String.prototype.slice(start, end)",
+  ([str, start, end]) => (end === undefined ? str.slice(start) : str.slice(start, end)),
+  [
+    ["Hello World", 0, 5],
+    ["Hello World", 6, undefined],
+    ["Hello World", -5, undefined],
+    ["Hello World", 0, -6],
+    ["Hello World", -5, -1],
+    ["Hello World", 100, undefined],
+    ["Hello World", -100, undefined],
+    ["Hello World", 5, 2],
+    ["", 0, 5],
+    ["abc", -1, undefined],
+    ["привіт світ", 0, 6],
+    ["12345", 1, 4],
+    ["Hello World", undefined, undefined],
+    ["Hello World", NaN, undefined],
+    ["Hello World", 0, NaN],
+    ["Hello World", 2],
+    ["😀😃😄", 0, 2],
+    ["Hello World", -1, -1],
+    ["Hello World", 3, 3],
+    ["Hello World", "2", "5"],
+  ]
+);
+
+runTests(
+  "String.prototype.split(separator, limit)",
+  ([str, sep, limit]) => (limit === undefined ? str.split(sep) : str.split(sep, limit)),
+  [
+    ["a,b,c", ",", undefined],
+    ["a,b,c,d", ",", 2],
+    ["Hello World", " ", undefined],
+    ["abc", "", undefined],
+    ["a1b2c3", /\d/, undefined],
+    ["one  two   three", /\s+/, undefined],
+    ["no-separator-here", "-", undefined],
+    ["", ",", undefined],
+    ["a,,b", ",", undefined],
+    ["Hello World", undefined, undefined],
+    ["Hello World", "", 3],
+    ["a-b-c", "-", 0],
+    ["привіт,світ", ",", undefined],
+    ["a.b.c", ".", undefined],
+    ["2024-01-15", "-", undefined],
+    ["CamelCaseWord", /(?=[A-Z])/, undefined],
+    ["a1 b22 c333", /(\d+)/, undefined],
+    ["  trim  me  ", " ", undefined],
+    ["single", ",", undefined],
+    ["a,b,c", /,/, undefined],
+  ]
+);
+
+runTests(
+  "String.prototype.startsWith(searchString, position)",
+  ([str, search, pos]) => (pos === undefined ? str.startsWith(search) : str.startsWith(search, pos)),
+  [
+    ["Hello World", "Hello", undefined],
+    ["Hello World", "hello", undefined],
+    ["Hello World", "World", undefined],
+    ["Hello World", "World", 6],
+    ["Hello World", "", undefined],
+    ["Hello World", "Hello World", undefined],
+    ["", "", undefined],
+    ["abc", "abcd", undefined],
+    ["привіт світ", "привіт", undefined],
+    ["  space", " ", undefined],
+    ["Hello World", "o", 4],
+    ["Hello World", "Hello", -5],
+    ["Hello World", "Hello", NaN],
+    ["Hello World", "Hello", 100],
+    ["file.txt", "file", undefined],
+    ["12345", "123", undefined],
+    ["Hello World", null, undefined],
+    ["null start", null, undefined],
+    ["aaa", "aa", undefined],
+    ["Hello", "Hello!", undefined],
+  ]
+);
+
+runTests(
+  "String.prototype.substring(start, end)",
+  ([str, start, end]) => (end === undefined ? str.substring(start) : str.substring(start, end)),
+  [
+    ["Hello World", 0, 5],
+    ["Hello World", 6, undefined],
+    ["Hello World", 5, 0],
+    ["Hello World", -5, 5],
+    ["Hello World", 0, -6],
+    ["Hello World", 100, undefined],
+    ["Hello World", -100, 5],
+    ["", 0, 5],
+    ["abc", 2, 5],
+    ["привіт світ", 0, 6],
+    ["12345", 1, 4],
+    ["Hello World", undefined, undefined],
+    ["Hello World", NaN, undefined],
+    ["Hello World", 0, NaN],
+    ["Hello World", 2],
+    ["Hello World", 5, 5],
+    ["Hello World", "2", "5"],
+    ["Hello World", 3, 1],
+    ["Hello World", Infinity, undefined],
+    ["😀😃😄", 0, 2],
+  ]
+);
+
+runTests(
+  "String.prototype.toLowerCase()",
+  (str) => str.toLowerCase(),
+  [
+    "HELLO",
+    "Hello World",
+    "hello",
+    "",
+    "12345",
+    "MiXeD CaSe",
+    "ПРИВІТ СВІТ",
+    "Ürün İstanbul",
+    "CamelCase",
+    "ALL CAPS!!!",
+    "  SPACES  ",
+    "ÀÉÎÕÜ",
+    "123ABC456",
+    "ẞ",
+    "İstanbul",
+    "MixedЛатиниЦа",
+    "TEST_CASE",
+    "😀ABC😃",
+    "ΑΒΓΔ",
+    "ABCabc",
+  ]
+);
+
+runTests(
+  "String.prototype.toUpperCase()",
+  (str) => str.toUpperCase(),
+  [
+    "hello",
+    "Hello World",
+    "HELLO",
+    "",
+    "12345",
+    "MiXeD CaSe",
+    "привіт світ",
+    "istanbul",
+    "camelCase",
+    "all lower!!!",
+    "  spaces  ",
+    "àéîõü",
+    "123abc456",
+    "ß",
+    "istanbul",
+    "mixedЛатиниЦа",
+    "test_case",
+    "😀abc😃",
+    "αβγδ",
+    "abcABC",
+  ]
+);
+
+runTests(
+  "String.prototype.trim()",
+  (str) => str.trim(),
+  [
+    "  hello  ",
+    "hello",
+    "",
+    "   ",
+    "\thello\t",
+    "\nhello\n",
+    "  hello world  ",
+    "no-trim-needed",
+    "  \t\n hello \n\t  ",
+    "hello  ",
+    "  hello",
+    "     ",
+    "  привіт  ",
+    "  123  ",
+    "\r\nhello\r\n",
+    "a b c",
+    "  a b c  ",
+    "​hello​",
+    "  \u00A0hello\u00A0  ",
+    "  !!!  ",
+  ]
+);
+
+runTests(
+  "String.prototype.trimEnd()",
+  (str) => str.trimEnd(),
+  [
+    "hello  ",
+    "  hello",
+    "hello",
+    "",
+    "   ",
+    "hello\t\t",
+    "hello\n\n",
+    "  hello world  ",
+    "no-trim-needed",
+    "hello  \t\n ",
+    "  hello  ",
+    "     ",
+    "привіт  ",
+    "123  ",
+    "hello\r\n",
+    "a b c  ",
+    "  a b c  ",
+    "hello\u00A0  ",
+    "!!!   ",
+    "x",
+  ]
+);
+
+runTests(
+  "String.prototype.trimStart()",
+  (str) => str.trimStart(),
+  [
+    "  hello",
+    "hello  ",
+    "hello",
+    "",
+    "   ",
+    "\t\thello",
+    "\n\nhello",
+    "  hello world  ",
+    "no-trim-needed",
+    " \t\n hello  ",
+    "  hello  ",
+    "     ",
+    "  привіт",
+    "  123",
+    "\r\nhello",
+    "  a b c",
+    "  a b c  ",
+    "\u00A0  hello",
+    "   !!!",
+    "x",
+  ]
+);
+
+runTests(
+  "String.prototype.localeCompare(compareString, locales, options)",
+  ([a, b, locale, opts]) => (locale === undefined ? a.localeCompare(b) : a.localeCompare(b, locale, opts)),
+  [
+    ["a", "b", undefined, undefined],
+    ["b", "a", undefined, undefined],
+    ["a", "a", undefined, undefined],
+    ["apple", "Apple", undefined, undefined],
+    ["apple", "Apple", undefined, { sensitivity: "base" }],
+    ["a", "A", undefined, undefined],
+    ["10", "9", undefined, undefined],
+    ["10", "9", undefined, { numeric: true }],
+    ["café", "cafe", undefined, undefined],
+    ["café", "cafe", undefined, { sensitivity: "base" }],
+    ["привіт", "привіт", undefined, undefined],
+    ["Ürün", "urun", "tr", undefined],
+    ["", "", undefined, undefined],
+    ["z", "a", undefined, undefined],
+    ["apple", "banana", undefined, undefined],
+    ["résumé", "resume", "fr", { sensitivity: "base" }],
+    ["ß", "ss", "de", undefined],
+    ["item2", "item10", undefined, { numeric: true }],
+    ["item2", "item10", undefined, undefined],
+    ["a", "b", "en", { sensitivity: "accent" }],
+  ]
+);
+
+console.log("\n" + "=".repeat(70));
+console.log("Готово: усі 28 наборів по 20 тестів виконано.");
+console.log("=".repeat(70));
