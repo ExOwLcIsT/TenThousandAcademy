@@ -1,0 +1,122 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    height: 100%;
+    width: 100%;
+}
+
+#join-container {
+    margin: 10px auto;
+    display: flex;
+    flex-direction: column;
+    width: 25%;
+    text-align: center;
+    border: 2px solid blueviolet;
+    border-radius: 15px;
+    padding: 1dvi;
+}
+
+#join-container>* {
+    border-radius: 5px;
+    border: none;
+    height: 20px;
+    margin-bottom: 2dvi;
+}
+
+#join {
+    height: 2dvi;
+    background-color: blueviolet;
+    color: whitesmoke;
+    text-transform: capitalize;
+    transition: background-color 200ms linear;
+}
+
+#join:hover {
+    height: 2dvi;
+    background-color: rgb(159, 69, 243);
+    cursor: pointer;
+}
+
+#room-container {
+    margin: 50px auto;
+    visibility: hidden;
+    width: 75%;
+    height: 100%;
+    padding: 1dvi;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    border-radius: 15px;
+}
+
+#room-header {
+    background: linear-gradient(180deg, rgb(255, 255, 255) 0%, rgb(254, 252, 250) 100%);
+    margin-bottom: 0;
+}
+
+#room-name {
+    color: blueviolet;
+}
+
+#online-members {
+    color: green;
+
+}
+
+#message-container {
+    height: 100%;
+    width: 90%;
+    margin: 0 auto;
+    margin-top: 0px;
+    padding: 2dvi;
+    background-color: blanchedalmond;
+    display: flex;
+    flex-direction: column;
+    border-radius: 5px;
+}
+
+.message {
+    margin: 5px;
+    color: rgb(100, 35, 160);
+    border-radius: 10px;
+    max-width: 100px;
+    text-align: left;
+    padding: 5px;
+    background: linear-gradient(180deg, rgb(249, 217, 254) 0%, rgb(248, 177, 251) 100%);
+    display: flex;
+    flex-direction: column;
+}
+
+.message .sender {
+    color: rgb(1, 80, 50);
+}
+
+.system-line {
+    background-color: rgba(128, 128, 128, 0.25);
+    width: 100%;
+    border-radius: 25px;
+}
+
+#message-sender {
+    height: 10dvi;
+    text-align: left;
+    padding: 2dvi;
+}
+
+#messageInput {
+    height: 50px;
+    color: blueviolet;
+    width: 50%;
+}
+
+#sendBtn {
+    border-radius: 50%;
+    height: 50px;
+    width: 50px;
+    color: white;
+    background-color: blueviolet;
+}

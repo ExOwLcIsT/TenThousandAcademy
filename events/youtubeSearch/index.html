@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Search — debounce + AbortController</title>
+    <style>
+        :root {
+            --bg: #14161a;
+            --panel: #1d2026;
+            --accent: #5b8cff;
+            --text: #e7e9ee;
+            --muted: #8b909c;
+            --border: #2a2e37;
+            --red: #f87171;
+            --green: #4ade80;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 40px 20px;
+        }
+
+        .wrap {
+            max-width: 620px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 20px;
+            margin: 0 0 6px;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0 0 22px;
+        }
+
+        .subtitle code {
+            background: #0f1114;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 12.5px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .panel h2 {
+            font-size: 12px;
+            color: var(--muted);
+            margin: 0 0 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            font: inherit;
+            font-size: 14px;
+            padding: 11px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #0f1114;
+            color: var(--text);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .search-row {
+            position: relative;
+        }
+
+        .search-row input {
+            padding-right: 40px;
+            font-size: 16px;
+            padding: 13px 40px 13px 14px;
+        }
+
+        .spinner {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            opacity: 0;
+            transition: opacity .15s ease;
+        }
+
+        .spinner.active {
+            opacity: 1;
+        }
+
+        @keyframes spin {
+            to {
+                transform: translateY(-50%) rotate(360deg);
+            }
+        }
+
+        .status-line {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 8px;
+            font-family: "SF Mono", Consolas, monospace;
+            min-height: 16px;
+        }
+
+        .status-line .aborted {
+            color: var(--red);
+        }
+
+        .status-line .ok {
+            color: var(--green);
+        }
+
+        .results {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .result-item {
+            display: flex;
+            gap: 12px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .result-item img {
+            width: 120px;
+            height: 68px;
+            object-fit: cover;
+            border-radius: 6px;
+            background: #0f1114;
+            flex-shrink: 0;
+        }
+
+        .result-info {
+            min-width: 0;
+        }
+
+        .result-title {
+            font-size: 13.5px;
+            font-weight: 500;
+            margin: 0 0 4px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .result-channel {
+            font-size: 12px;
+            color: var(--muted);
+            margin: 0;
+        }
+
+        .empty-state,
+        .error-state {
+            color: var(--muted);
+            font-size: 13px;
+            text-align: center;
+            padding: 24px 0;
+        }
+
+        .error-state {
+            color: var(--red);
+        }
+
+        details summary {
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        details {
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="wrap">
+        <h1>Пошук відео на YouTube</h1>
+
+        <div class="panel">
+            <h2>Пошук</h2>
+            <div class="search-row">
+                <input type="text" id="searchInput" placeholder="Введи назву відео...">
+                <div class="spinner" id="spinner"></div>
+            </div>
+            <div class="status-line" id="statusLine"></div>
+        </div>
+
+        <div class="results" id="results">
+            <div class="empty-state">Введи запит, щоб побачити результати.</div>
+        </div>
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const resultsEl = document.getElementById('results');
+        const statusLine = document.getElementById('statusLine');
+        const spinner = document.getElementById('spinner');
+
+        const DEBOUNCE_MS = 800;
+        const API_HOST = 'youtube-v31.p.rapidapi.com';
+
+        let debounceTimer = null;
+        let activeController = null; // посилання на AbortController поточного "живого" запиту
+        let requestCounter = 0; // для логування, який саме запит скасувався/завершився
+
+        function setStatus(text, type) {
+            statusLine.textContent = text;
+            statusLine.className = 'status-line' + (type ? ` ${type}` : '');
+        }
+
+        function renderEmpty(message) {
+            resultsEl.innerHTML = `<div class="empty-state">${message}</div>`;
+        }
+
+        function renderError(message) {
+            resultsEl.innerHTML = `<div class="error-state">${message}</div>`;
+        }
+
+        function renderResults(items) {
+            if (!items.length) {
+                renderEmpty('Нічого не знайдено за цим запитом.');
+                return;
+            }
+
+            resultsEl.innerHTML = items.map(item => {
+                const videoId = item.id?.videoId;
+                const snippet = item.snippet;
+                if (!videoId || !snippet) return '';
+
+                const thumb = snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url || '';
+
+                return `
+        <a class="result-item" href="https://www.youtube.com/watch?v=${videoId}" target="_blank" rel="noopener">
+          <img src="${thumb}" alt="" loading="lazy">
+          <div class="result-info">
+            <p class="result-title">${escapeHtml(snippet.title)}</p>
+            <p class="result-channel">${escapeHtml(snippet.channelTitle || '')}</p>
+          </div>
+        </a>
+      `;
+            }).join('');
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str ?? '';
+            return div.innerHTML;
+        }
+
+        // ---------- Головна логіка запиту ----------
+        async function performSearch(query) {
+            const apiKey = 'cc24df1888mshc4d56366892e0c2p1f63bajsn6f57ddd01879';
+
+            // 1. Якщо попередній запит ще виконується — обриваємо його
+            if (activeController) {
+                activeController.abort();
+            }
+
+            // 2. Створюємо новий контролер саме для цього запиту
+            const controller = new AbortController();
+            activeController = controller;
+
+            const requestId = ++requestCounter;
+            spinner.classList.add('active');
+            setStatus(`Запит #${requestId}: виконується...`);
+
+            const url = `https://${API_HOST}/search?` + new URLSearchParams({
+                q: query,
+                part: 'id,snippet',
+                type: 'video',
+                maxResults: '12',
+            });
+
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'X-RapidAPI-Host': API_HOST,
+                        'X-RapidAPI-Key': apiKey,
+                    },
+                    signal: controller.signal,
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP помилка: ${response.status}`);
+                }
+
+                const data = await response.json();
+                renderResults(data.items || []);
+                setStatus(`Запит #${requestId}: завершено, знайдено ${data.items?.length || 0}`, 'ok');
+
+            } catch (err) {
+                if (err.name === 'AbortError') {
+                    // це очікувана поведінка — попередній запит скасовано новим вводом
+                    setStatus(`Запит #${requestId}: скасовано (обірваний новим введенням)`, 'aborted');
+                    console.log(`Запит #${requestId}: скасовано (обірваний новим введенням)`);
+                    return; // НЕ перезаписуємо результати й не вимикаємо спінер тут —
+                    // про це подбає той запит, який дійсно завершиться
+                }
+
+                console.error(err);
+                renderError('Помилка запиту: ' + err.message);
+                setStatus(`Запит #${requestId}: помилка`, 'aborted');
+            } finally {
+                // вимикаємо спінер, тільки якщо це найсвіжіший запит
+                if (activeController === controller) {
+                    spinner.classList.remove('active');
+                    activeController = null;
+                }
+            }
+        }
+
+        // ---------- Debounce на вводі ----------
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+
+            clearTimeout(debounceTimer);
+
+            if (!query) {
+                if (activeController) activeController.abort();
+                renderEmpty('Введи запит, щоб побачити результати.');
+                setStatus('');
+                return;
+            }
+
+            setStatus('Очікування паузи в друкуванні...');
+
+            debounceTimer = setTimeout(() => {
+                performSearch(query);
+            }, DEBOUNCE_MS);
+        });
+    </script>
+
+</body>
+
+</html>

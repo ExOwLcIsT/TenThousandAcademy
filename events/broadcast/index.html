@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BroadcastChannel — зв'язок між вкладками</title>
+<style>
+  :root {
+    --bg: #14161a;
+    --panel: #1d2026;
+    --accent: #5b8cff;
+    --text: #e7e9ee;
+    --muted: #8b909c;
+    --border: #2a2e37;
+    --green: #4ade80;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 40px 20px;
+  }
+
+  .wrap { max-width: 560px; margin: 0 auto; }
+
+  h1 { font-size: 20px; margin: 0 0 6px; }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0 0 24px;
+  }
+
+  .subtitle b { color: var(--text); }
+
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 18px;
+  }
+
+  .panel h2 {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0 0 14px;
+    font-weight: 500;
+  }
+
+  /* --- лічильник --- */
+  .counter-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .counter-value {
+    font-size: 34px;
+    font-weight: 600;
+    min-width: 60px;
+  }
+
+  .btn-group { display: flex; gap: 8px; }
+
+  button {
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 9px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #262a32;
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color .15s ease, transform .1s ease;
+  }
+
+  button:hover { border-color: var(--accent); }
+  button:active { transform: scale(0.96); }
+
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* --- чат --- */
+  .chat-input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  input[type="text"] {
+    flex: 1;
+    font: inherit;
+    font-size: 14px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #0f1114;
+    color: var(--text);
+  }
+
+  input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .chat-log {
+    font-size: 13px;
+    line-height: 1.7;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .chat-log .empty { color: var(--muted); font-size: 12px; }
+
+  .chat-row {
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+  }
+  .chat-row:last-child { border-bottom: none; }
+
+  .chat-tab {
+    color: var(--accent);
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .chat-tab.self { color: var(--muted); }
+
+  code {
+    background: #0f1114;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 12.5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>BroadcastChannel — зв'язок між вкладками</h1>
+  <p class="subtitle">
+    Відкрий цю сторінку ще в <b>одній чи декількох вкладках</b> (той самий origin) —
+    лічильник і чат нижче миттєво синхронізуються між усіма відкритими вкладками
+    через <code>new BroadcastChannel('demo-channel')</code>, без сервера й без localStorage.
+  </p>
+
+  <div class="status"><span class="dot"></span> Канал "demo-channel" активний · ID цієї вкладки: <span id="tabIdLabel"></span></div>
+
+  <div class="panel">
+    <h2>Спільний лічильник</h2>
+    <div class="counter-row">
+      <div class="counter-value" id="counterValue">0</div>
+      <div class="btn-group">
+        <button id="decBtn">−1</button>
+        <button class="btn-primary" id="incBtn">+1</button>
+        <button id="resetBtn">Скинути</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Міні-чат між вкладками</h2>
+    <div class="chat-input-row">
+      <input type="text" id="chatInput" placeholder="Повідомлення для інших вкладок...">
+      <button class="btn-primary" id="chatSendBtn">Надіслати</button>
+    </div>
+    <div class="chat-log" id="chatLog">
+      <div class="empty">Повідомлень ще немає.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------- Ідентифікатор поточної вкладки (щоб бачити, звідки прийшло повідомлення) ----------
+  const tabId = Math.random().toString(36).slice(2, 7);
+  document.getElementById('tabIdLabel').textContent = tabId;
+
+  // ---------- Створюємо канал ----------
+  const channel = new BroadcastChannel('demo-channel');
+
+  // ==========================================================
+  // 1. СПІЛЬНИЙ ЛІЧИЛЬНИК
+  // ==========================================================
+  let counter = 0;
+  const counterEl = document.getElementById('counterValue');
+
+  function renderCounter() {
+    counterEl.textContent = counter;
+  }
+
+  function updateCounter(delta) {
+    counter += delta;
+    renderCounter();
+    // сповіщаємо ІНШІ вкладки — себе самого BroadcastChannel не сповіщає
+    channel.postMessage({ kind: 'counter', value: counter, from: tabId });
+  }
+
+  document.getElementById('incBtn').addEventListener('click', () => updateCounter(1));
+  document.getElementById('decBtn').addEventListener('click', () => updateCounter(-1));
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    counter = 0;
+    renderCounter();
+    channel.postMessage({ kind: 'counter', value: counter, from: tabId });
+  });
+
+  // ==========================================================
+  // 2. МІНІ-ЧАТ
+  // ==========================================================
+  const chatLog = document.getElementById('chatLog');
+  const chatInput = document.getElementById('chatInput');
+  let firstChatMessage = true;
+
+  function appendChatRow(text, fromTabId, isSelf) {
+    if (firstChatMessage) {
+      chatLog.innerHTML = '';
+      firstChatMessage = false;
+    }
+    const row = document.createElement('div');
+    row.className = 'chat-row';
+    row.innerHTML = `
+      <span class="chat-tab ${isSelf ? 'self' : ''}">[${fromTabId}${isSelf ? ' · ти' : ''}]</span>
+      <span>${text}</span>
+    `;
+    chatLog.prepend(row);
+  }
+
+  function sendChatMessage() {
+    const text = chatInput.value.trim();
+    if (!text) return;
+
+    appendChatRow(text, tabId, true); // показуємо собі одразу
+    channel.postMessage({ kind: 'chat', text, from: tabId });
+
+    chatInput.value = '';
+    chatInput.focus();
+  }
+
+  document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') sendChatMessage();
+  });
+
+  // ==========================================================
+  // 3. ЄДИНИЙ СЛУХАЧ — обробляє повідомлення від ІНШИХ вкладок
+  // ==========================================================
+  channel.onmessage = (event) => {
+    const msg = event.data;
+
+    if (msg.kind === 'counter') {
+      counter = msg.value;
+      renderCounter();
+    }
+
+    if (msg.kind === 'chat') {
+      appendChatRow(msg.text, msg.from, false);
+    }
+  };
+
+  // Чистимо ресурс при закритті вкладки — гарна практика
+  window.addEventListener('beforeunload', () => {
+    channel.close();
+  });
+</script>
+
+</body>
+</html>

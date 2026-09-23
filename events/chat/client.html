@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatty-chat</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+
+<body>
+    <div id="join-container">
+        <h1>Join the room</h1>
+        <input id="nickname" placeholder="nickname">
+        <input id="room" placeholder="room to join">
+        <button id="join">join</button>
+    </div>
+    <div id="room-container">
+        <div id="room-header">
+            <h1 id="room-name"></h1>
+            <div id="online-members"></div>
+        </div>
+        <div id="typing-nicknames"></div>
+        <div id="message-container"></div>
+        <div id="message-sender">
+            <input id="messageInput" placeholder="type a message...">
+            <button id="sendBtn">ᯓ➤</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>

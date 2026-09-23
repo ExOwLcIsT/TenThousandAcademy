@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iframe</title>
+</head>
+
+<body>
+    <iframe id="childFrame" src="" srcdoc="<!DOCTYPE html>
+<html>
+
+<head>
+</head>
+<body> <button id='sendBtn'>Надіслати повідомлення в батьківське вікно</button>
+    <script>
+        document.getElementById('sendBtn').addEventListener('click', ()=>{
+            window.parent.postMessage(
+              { type: 'GREETING', text: 'Привіт з iframe!'},
+              '*' // у реальному проєкті тут завжди конкретний origin, не '*'
+            );  });
+       </script> </body>"> </iframe>
+    <div class="panel">
+        <h2>Батьківське вікно — отримані повідомлення</h2>
+        <div class="log" id="log">
+            <div class="empty">Ще нічого не отримано. Натисни кнопку в iframe вище.</div>
+        </div>
+    </div>
+    <script>
+        const logEl = document.getElementById('log');
+        let firstMessage = true;
+
+        window.addEventListener('message', (event) => {
+            // У реальному застосунку тут ОБОВ'ЯЗКОВА перевірка event.origin:
+            //
+            // if (event.origin !== 'https://trusted-child-domain.com') return;
+            //
+            // У цій демці iframe створений через srcdoc, тому його origin — "null",
+            // а не звичайний http(s)-домен. Перевірку origin тут пропущено навмисно,
+            // щоб демо працювало як самодостатній HTML-файл.
+
+            if (firstMessage) {
+                logEl.innerHTML = '';
+                firstMessage = false;
+            }
+
+            const row = document.createElement('div');
+            row.className = 'row';
+            row.innerHTML = `
+    <span class="time">[${new Date().toLocaleTimeString()}]</span>
+    event.origin = <span class="key">"${event.origin}"</span><br>
+    event.data = <span class="key">${JSON.stringify(event.data)}</span>
+    `;
+            logEl.prepend(row);
+        });
+    </script>
+
+</body>
+
+</html>

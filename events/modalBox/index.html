@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<title>Modal + EventEmitter</title>
+<style>
+  :root {
+    --bg: #14161a;
+    --panel: #1d2026;
+    --accent: #5b8cff;
+    --text: #e7e9ee;
+    --muted: #8b909c;
+    --border: #2a2e37;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  .stage {
+    text-align: center;
+    max-width: 480px;
+    padding: 40px 24px;
+  }
+
+  .stage h1 {
+    font-size: 22px;
+    margin: 0 0 8px;
+  }
+
+  .stage p {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0 0 28px;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  button {
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color .15s ease, transform .1s ease;
+  }
+
+  button:hover { border-color: var(--accent); }
+  button:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* --- модальне вікно --- */
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s ease;
+    z-index: 100;
+  }
+
+  .modal-overlay.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .modal-box {
+    width: min(420px, calc(100vw - 40px));
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    transform: translateY(8px) scale(0.98);
+    transition: transform .18s ease;
+  }
+
+  .modal-overlay.is-open .modal-box {
+    transform: translateY(0) scale(1);
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .modal-header h2 {
+    font-size: 17px;
+    margin: 0;
+  }
+
+  .modal-close {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 20px;
+    line-height: 1;
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+
+  .modal-close:hover { color: var(--text); }
+
+  .modal-body {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .log {
+    margin-top: 28px;
+    text-align: left;
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    max-height: 140px;
+    overflow-y: auto;
+  }
+
+  .log div { padding: 2px 0; }
+  .log span { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <h1>Модальне вікно на EventEmitter</h1>
+  <p>Кнопки не викликають модалку напряму — вони лише емітять події <code>modal:open</code> / <code>modal:close</code>. Сама модалка про них нічого не знає, вона просто підписана слухачем.</p>
+
+  <div class="btn-row">
+    <button class="btn-primary" id="openBtn">Відкрити модалку</button>
+    <button id="closeBtn">Закрити (ззовні)</button>
+  </div>
+
+  <div class="log" id="log"></div>
+</div>
+
+<div class="modal-overlay" id="overlay">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-header">
+      <h2 id="modalTitle">Заголовок модалки</h2>
+      <button class="modal-close" id="modalCloseX" aria-label="Закрити">&times;</button>
+    </div>
+    <div class="modal-body">
+      Цей блок відкрився через <code>emitter.emit('modal:open')</code>.
+      Закрити можна хрестиком, кнопкою нижче, кліком по фону або клавішею Esc —
+      усі вони просто викликають <code>emitter.emit('modal:close')</code>.
+    </div>
+    <div class="modal-footer">
+      <button id="modalCancelBtn">Скасувати</button>
+      <button class="btn-primary" id="modalOkBtn">Ок</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------- 1. Мінімальний EventEmitter для браузера ----------
+  class EventEmitter {
+    #listeners = {};
+
+    on(event, fn) {
+      (this.#listeners[event] ??= []).push(fn);
+      return this;
+    }
+
+    off(event, fn) {
+      this.#listeners[event] = (this.#listeners[event] || []).filter(f => f !== fn);
+      return this;
+    }
+
+    emit(event, payload) {
+      (this.#listeners[event] || []).forEach(fn => fn(payload));
+      return this;
+    }
+  }
+
+  // Єдиний спільний emitter для всього застосунку
+  const modalEmitter = new EventEmitter();
+
+  // ---------- 2. Клас модалки, який лише слухає події ----------
+  class Modal {
+    constructor(emitter, overlayEl) {
+      this.emitter = emitter;
+      this.overlay = overlayEl;
+
+      // модалка нічого не знає про кнопки, що її викликають —
+      // вона тільки реагує на події 'modal:open' / 'modal:close'
+      this.emitter.on('modal:open', (data) => this.open(data));
+      this.emitter.on('modal:close', () => this.close());
+
+      // клік по темному фону закриває модалку
+      this.overlay.addEventListener('click', (e) => {
+        if (e.target === this.overlay) {
+          this.emitter.emit('modal:close');
+        }
+      });
+
+      // Esc закриває модалку
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && this.overlay.classList.contains('is-open')) {
+          this.emitter.emit('modal:close');
+        }
+      });
+    }
+
+    open(data) {
+      if (data?.title) {
+        document.getElementById('modalTitle').textContent = data.title;
+      }
+      this.overlay.classList.add('is-open');
+    }
+
+    close() {
+      this.overlay.classList.remove('is-open');
+    }
+  }
+
+  new Modal(modalEmitter, document.getElementById('overlay'));
+
+  // ---------- 3. Логування подій (для наочності патерну) ----------
+  const logEl = document.getElementById('log');
+  function logEvent(name) {
+    const time = new Date().toLocaleTimeString();
+    const row = document.createElement('div');
+    row.innerHTML = `<span>[${time}]</span> emit('${name}')`;
+    logEl.prepend(row);
+  }
+
+  modalEmitter.on('modal:open', () => logEvent('modal:open'));
+  modalEmitter.on('modal:close', () => logEvent('modal:close'));
+
+  // ---------- 4. Кнопки просто емітять події, більше нічого не роблять ----------
+  document.getElementById('openBtn').addEventListener('click', () => {
+    modalEmitter.emit('modal:open', { title: 'Модалка через EventEmitter' });
+  });
+
+  document.getElementById('closeBtn').addEventListener('click', () => {
+    modalEmitter.emit('modal:close');
+  });
+
+  document.getElementById('modalCloseX').addEventListener('click', () => {
+    modalEmitter.emit('modal:close');
+  });
+
+  document.getElementById('modalCancelBtn').addEventListener('click', () => {
+    modalEmitter.emit('modal:close');
+  });
+
+  document.getElementById('modalOkBtn').addEventListener('click', () => {
+    modalEmitter.emit('modal:close');
+  });
+</script>
+
+</body>
+</html>
